@@ -18,8 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     let canvas = reset ? emptyCanvas(sessionId) : await loadCanvas(sessionId);
-    const { canvas: updated, reply } = await advance(canvas, message);
-
+    const { canvas: updated, reply } = await advance(canvas, message, sessionId);
     await saveCanvas(updated);
 
     return NextResponse.json({ canvas: updated, reply });
