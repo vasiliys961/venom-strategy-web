@@ -3,9 +3,15 @@ import OpenAI from "openai";
 let client: OpenAI | null = null;
 
 export function getLlmClient(): OpenAI {
+  const apiKey = process.env.POLZA_API_KEY || process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "POLZA_API_KEY не задан. добавьте его в Settings → Environment Variables на Vercel и сделайте Redeploy."
+    );
+  }
   if (!client) {
     client = new OpenAI({
-      apiKey: process.env.POLZA_API_KEY,
+      apiKey,
       baseURL: process.env.POLZA_BASE_URL || "https://polza.ai/api/v1",
     });
   }
