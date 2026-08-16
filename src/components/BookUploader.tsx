@@ -11,6 +11,7 @@ interface Props {
 export default function BookUploader({ sessionId, bookConnected, onBookChange }: Props) {
   const [status, setStatus] = useState<"idle" | "uploading" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [showHelp, setShowHelp] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
@@ -114,15 +115,70 @@ export default function BookUploader({ sessionId, bookConnected, onBookChange }:
           }}
         />
       </div>
+
       {message && (
         <div style={{ fontSize: 11, marginTop: 8, color: status === "error" ? "#f87171" : "#9a9aa5" }}>
           {message}
         </div>
       )}
+
       {!bookConnected && (
-        <div style={{ fontSize: 11, marginTop: 6, color: "#7c7a8a" }}>
-          поддерживается .txt и .md, до 4\u00a0Мб. ответы будут точнее опираться на текст книги.
-        </div>
+        <>
+          <div style={{ fontSize: 11, marginTop: 6, color: "#7c7a8a", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <span>
+              поддерживается .txt и .md, до 4\u00a0Мб.
+            </span>
+            <button
+              onClick={() => setShowHelp((v) => !v)}
+              style={{
+                fontSize: 11,
+                color: "#67e8f9",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                textDecoration: "underline",
+                whiteSpace: "nowrap",
+                padding: 0,
+              }}
+            >
+              {showHelp ? "скрыть" : "а если у меня PDF?"}
+            </button>
+          </div>
+
+          {showHelp && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: 10,
+                borderRadius: 10,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                fontSize: 11.5,
+                color: "#c9c6d8",
+                lineHeight: 1.55,
+              }}
+            >
+              <div style={{ marginBottom: 6, color: "#e5e2f0", fontWeight: 600 }}>
+                как подготовить книгу из PDF или Word:
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                1. откройте файл (Adobe, Preview, Google Docs или Word)
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                2. выделите весь текст (Ctrl+A или Cmd+A) и скопируйте
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                3. вставьте в текстовый редактор (блокнот, TextEdit, VS Code)
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                4. сохраните с расширением .txt и загрузите сюда
+              </div>
+              <div style={{ marginTop: 6, color: "#9a9aa5" }}>
+                в Word и Google Docs есть прямой экспорт: «скачать как → обычный текст (.txt)» или «Markdown (.md)» — это быстрее, чем копировать вручную.
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
