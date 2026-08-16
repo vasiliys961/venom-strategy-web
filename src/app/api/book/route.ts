@@ -4,40 +4,41 @@ import { storeBook, clearBook } from "@/lib/bookRag";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const MAX_SIZE_BYTES = 4 * 1024 * 1024;
+const MAX_TEXT_BYTES = 4 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const sessionId = formData.get("sessionId");
-    const file = formData.get("file");
+    const body = await req.json();
+    const { sessionId, text, fileName } = body as {
+      sessionId?: string;
+      text?: string;
+      fileName?: string;
+    };
 
     if (!sessionId || typeof sessionId !== "string") {
       return NextResponse.json({ error: "sessionId is required" }, { status: 400 });
     }
-    if (!file || !(file instanceof File)) {
-      return NextResponse.json({ error: "файл не приложен" }, { status: 400 });
-    }
-    if (file.size > MAX_SIZE_BYTES) {
+    if (!text || typeof text !== "string" || text.trim().length < 20) {
       return NextResponse.json(
-        { error: "файл слишком большой (максимум 4 Мб). используйте .txt-версию книги." },
-        { status: 400 }
-      );
-    }
-    if (!file.name.toLowerCase().endsWith(".txt")) {
-      return NextResponse.json(
-        { error: "пока поддерживается только .txt. сохраните книгу в виде простого текста и подгрузите её." },
+        { error: "пустой или слишком короткий текст" },
         { status: 400 }
       );
     }
 
-    const text = await file.text();
+    const textBytes = Buffer.byteLength(text, "utf-8");
+    if (textBytes > MAX_TEXT_BYTES) {
+      return NextResponse.json(
+        { error: "текст слишком большой (максимум 4 Мб)." },
+        { status: 400 }
+      );
+    }
+
     const chunkCount = await storeBook(sessionId, text);
 
-    return NextResponse.json({ ok: true, chunkCount });
+    return NextResponse.json({ ok: true, chunkCount, fileName });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "не удалось обработать файл" }, { status: 500 });
+    return NextResponse.json({ error: "не удалось обработать текст" }, { status: 500 });
   }
 }
 
