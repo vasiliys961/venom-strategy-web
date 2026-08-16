@@ -85,7 +85,9 @@ const STEP_HANDLERS: Partial<Record<Stage, (canvas: VenomCanvas, userInput: stri
 };
 
 export async function advance(canvas: VenomCanvas, userInput: string): Promise<StepResult> {
-  if (canvas.stage === "done") {
+  const initialStage: Stage = canvas.stage;
+
+  if (initialStage === "done") {
     return { canvas, reply: "твоя стратегия уже собрана. начни новую сессию, чтобы пройти путь снова." };
   }
 
@@ -93,12 +95,13 @@ export async function advance(canvas: VenomCanvas, userInput: string): Promise<S
     canvas.history.push({ role: "user", content: userInput, stage: canvas.stage });
   }
 
-  const handler = STEP_HANDLERS[canvas.stage];
+  const handler = STEP_HANDLERS[initialStage];
   const result = handler ? await handler(canvas, userInput) : await stepAssembly(canvas);
 
-  result.canvas.history.push({ role: "assistant", content: result.reply, stage: canvas.stage });
+  result.canvas.history.push({ role: "assistant", content: result.reply, stage: initialStage });
 
-  if (result.canvas.stage === "assembly" && canvas.stage !== "done") {
+  const stageAfterStep: Stage = result.canvas.stage;
+  if (stageAfterStep === "assembly" && initialStage !== "assembly") {
     const assembled = await stepAssembly(result.canvas);
     assembled.canvas.history.push({ role: "assistant", content: assembled.reply, stage: "assembly" });
     return assembled;
