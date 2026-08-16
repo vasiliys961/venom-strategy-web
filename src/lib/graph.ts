@@ -82,6 +82,11 @@ const STEP_HANDLERS: Partial<
   management: stepManagement,
 };
 
+function wasNotDone(stage: Stage): boolean {
+  const s: string = stage;
+  return s !== "done";
+}
+
 export async function advance(canvas: VenomCanvas, userInput: string, sessionId?: string): Promise<StepResult> {
   const initialStage: Stage = canvas.stage;
 
@@ -110,7 +115,7 @@ export async function advance(canvas: VenomCanvas, userInput: string, sessionId?
   result.canvas.history.push({ role: "assistant", content: result.reply, stage: initialStage });
 
   const stageAfterStep: Stage = result.canvas.stage;
-  if (stageAfterStep === "assembly" && initialStage !== "done") {
+  if (stageAfterStep === "assembly" && wasNotDone(initialStage)) {
     const assembled = await stepAssembly(result.canvas, bookContext);
     assembled.canvas.history.push({ role: "assistant", content: assembled.reply, stage: "assembly" });
     return assembled;
