@@ -7,19 +7,84 @@
 стресс-тест стратегии, архитектура изменений), но в браузере, с визуальным
 VENOM Canvas, и заточена под деплой на Vercel.
 
-Живой деплой: https://venom-strategy-web-vasiliys961s-projects.vercel.app
+**живой деплой:** https://venom-strategy-web-vasiliys961s-projects.vercel.app
 
 ## быстрый старт (для нетехнического пользователя)
 
-**если вы просто хотите запустить готового бота — читайте [`HOW_TO_USE.md`](./HOW_TO_USE.md).**
-там пошаговая инструкция на русском: как задеплоить сайт на Vercel без программирования.
+**смотрите [`HOW_TO_USE.md`](./HOW_TO_USE.md)** — там пошаговая инструкция
+на русском, как задеплоить сайт на Vercel без программирования.
 
-Нейросеть подключена через **Polza.ai** — российский агрегатор LLM-моделей
-(Claude, GPT, Gemini и др.), доступный из РФ без VPN, с оплатой в рублях.
+## архитектура
 
-## идея метода
+```
+браузер (Next.js React) <-> /api/venom (Vercel Serverless Function)
+                                    |
+                              LLM (Polza.ai: Claude/GPT/Gemini)
+                                    |
+                          Vercel KV (состояние VenomCanvas)
+                          Upstash Vector (семантический поиск по книге)
+```
 
-VENOM — метод, который проводит человека через 5 этапов:
+в отличие от Telegram-бота (постоянно работающий процесс с long-polling), эта
+версия — набор коротких serverless-функций, которые обрабатывают один
+шаг диалога за вызов. из-за этого состояние (`VenomCanvas`) хранится не
+в файле SQLite, а в Vercel KV (Redis) — файловая система serverless-функций
+не сохраняется между вызовами.
+
+**важно:** без настроенного Vercel KV состояние будет храниться только в
+памяти конкретной функции и может обрываться между запросами (Vercel
+периодически "холодно" перезапускает функции). для надёжной работы
+Vercel KV нужно подключить — см. `HOW_TO_USE.md`.
+
+## структура репозитория
+
+```
+src/
+  app/
+    page.tsx           - главная страница (чат + Canvas)
+    layout.tsx
+    globals.css
+    api/venom/route.ts - serverless API: обработка одного шага диалога
+    api/book/route.ts  - serverless API: загрузка и удаление книги
+  components/
+    CanvasView.tsx      - визуальное представление VENOM Canvas
+    StageProgress.tsx   - индикатор прогресса по этапам
+    BookUploader.tsx    - загрузка книги для семантического поиска
+  lib/
+    types.ts            - типы VenomCanvas, Stage, SmartObjective
+    prompts.ts           - системные промпты (перенесены из Python-версии)
+    llm.ts               - клиент Polza.ai (OpenAI-совместимый)
+    graph.ts              - оркестрация этапов VENOM (аналог LangGraph-графа)
+    kvStore.ts            - персистентность через Vercel KV
+    bookRag.ts            - семантический поиск по книге (Upstash Vector + эмбеддинги Polza.ai)
+package.json
+tsconfig.json
+next.config.js
+.env.example
+```
+
+## локальный запуск для разработчика
+
+```bash
+npm install
+cp .env.example .env.local
+# впишите POLZA_API_KEY в .env.local
+npm run dev
+```
+
+откройте http://localhost:3000
+
+## деплой на Vercel
+
+```bash
+npm i -g vercel
+vercel
+```
+
+или через веб-интерфейс Vercel: Import Project → выбрать этот репозиторий
+→ указать переменные окружения из `.env.example` → Deploy.
+
+## метод VENOM
 
 1. **V**ision — образ желаемого будущего (горизонт 10 лет)
 2. **E**valuation — анализ текущего состояния через модель OrgOS (8 элементов)
