@@ -1,5 +1,6 @@
 import { VenomCanvas, Stage, SmartObjective, isStageComplete } from "./types";
 import { askJson, askText } from "./llm";
+import { retrieveFromBook } from "./bookRag";
 import {
   VISION_PROMPT,
   EVALUATION_PROMPT,
@@ -14,8 +15,14 @@ interface StepResult {
   reply: string;
 }
 
+async function withBookContext(sessionId: string, prompt: string, query: string): Promise<string> {
+  const bookContext = query ? await retrieveFromBook(sessionId, query) : "";
+  return bookContext ? `${prompt}\n\n${bookContext}` : prompt;
+}
+
 async function stepVision(canvas: VenomCanvas, userInput: string): Promise<StepResult> {
-  const data = await askJson(VISION_PROMPT, userInput);
+  const prompt = await withBookContext(canvas.sessionId, VISION_PROMPT, userInput);
+  const data = await askJson(prompt, userInput);
   if (data.vision10y) canvas.vision10y = data.vision10y as string;
   if (data.desiredFuture) canvas.desiredFuture = data.desiredFuture as string;
   if (Array.isArray(data.coreValues) && data.coreValues.length) canvas.coreValues = data.coreValues as string[];
@@ -25,7 +32,9 @@ async function stepVision(canvas: VenomCanvas, userInput: string): Promise<StepR
 }
 
 async function stepEvaluation(canvas: VenomCanvas, userInput: string): Promise<StepResult> {
-  const data = await askJson(EVALUATION_PROMPT(canvas.desiredFuture || ""), userInput);
+  const basePrompt = EVALUATION_PROMPT(canvas.desiredFuture || "");
+  const prompt = await withBookContext(canvas.sessionId, basePrompt, userInput);
+  const data = await askJson(prompt, userInput);
   if (data.lifeSpheres && typeof data.lifeSpheres === "object") {
     canvas.lifeSpheres = { ...canvas.lifeSpheres, ...(data.lifeSpheres as Record<string, string>) };
   }
@@ -38,7 +47,8 @@ async function stepEvaluation(canvas: VenomCanvas, userInput: string): Promise<S
 }
 
 async function stepGaps(canvas: VenomCanvas, userInput: string): Promise<StepResult> {
-  const data = await askJson(GAPS_PROMPT, userInput);
+  const prompt = await withBookContext(canvas.sessionId, GAPS_PROMPT, userInput);
+  const data = await askJson(prompt, userInput);
   if (Array.isArray(data.stabilityGaps)) canvas.stabilityGaps.push(...(data.stabilityGaps as string[]));
   if (Array.isArray(data.growthGaps)) canvas.growthGaps.push(...(data.growthGaps as string[]));
   if (data.rootCauses && typeof data.rootCauses === "object") {
@@ -50,7 +60,8 @@ async function stepGaps(canvas: VenomCanvas, userInput: string): Promise<StepRes
 }
 
 async function stepObjectives(canvas: VenomCanvas, userInput: string): Promise<StepResult> {
-  const data = await askJson(OBJECTIVES_PROMPT, userInput);
+  const prompt = await withBookContext(canvas.sessionId, OBJECTIVES_PROMPT, userInput);
+  const data = await askJson(prompt, userInput);
   if (Array.isArray(data.strategicGoals)) canvas.strategicGoals.push(...(data.strategicGoals as string[]));
   if (Array.isArray(data.smartObjectives)) {
     canvas.smartObjectives.push(...(data.smartObjectives as SmartObjective[]));
@@ -61,7 +72,8 @@ async function stepObjectives(canvas: VenomCanvas, userInput: string): Promise<S
 }
 
 async function stepManagement(canvas: VenomCanvas, userInput: string): Promise<StepResult> {
-  const data = await askJson(MANAGEMENT_PROMPT, userInput);
+  const prompt = await withBookContext(canvas.sessionId, MANAGEMENT_PROMPT, userInput);
+  const data = await askJson(prompt, userInput);
   if (Array.isArray(data.habitsToBuild)) canvas.habitsToBuild.push(...(data.habitsToBuild as string[]));
   if (data.retrospectiveCadence) canvas.retrospectiveCadence = data.retrospectiveCadence as string;
   if (data.managementSystem) canvas.managementSystem = data.managementSystem as string;
@@ -71,7 +83,9 @@ async function stepManagement(canvas: VenomCanvas, userInput: string): Promise<S
 }
 
 async function stepAssembly(canvas: VenomCanvas): Promise<StepResult> {
-  const report = await askText(ASSEMBLY_PROMPT(JSON.stringify(canvas)));
+  const basePrompt = ASSEMBLY_PROMPT(JSON.stringify(canvas));
+  const prompt = await withBookContext(canvas.sessionId, basePrompt, canvas.desiredFuture || "");
+  const report = await askText(prompt);
   canvas.stage = "done";
   return { canvas, reply: report };
 }
