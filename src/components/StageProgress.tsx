@@ -7,8 +7,8 @@ interface Props {
 }
 
 export default function StageProgress({ stages, current, labels }: Props) {
-  const visibleStages = stages.filter((s) => s !== "done");
-  const currentIndex = visibleStages.indexOf(current);
+  const visibleStages: Stage[] = stages.filter((s): s is Stage => s !== "done");
+  const currentIndex = visibleStages.indexOf(current as Stage);
 
   return (
     <div style={{ padding: "12px 20px", borderBottom: "1px solid #23262f" }}>
