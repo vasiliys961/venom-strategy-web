@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { VenomCanvas, STAGE_LABELS, STAGE_ORDER } from "@/lib/types";
 import CanvasView from "@/components/CanvasView";
 import StageProgress from "@/components/StageProgress";
+import BookUploader from "@/components/BookUploader";
 
 function getSessionId(): string {
   if (typeof window === "undefined") return "";
@@ -20,6 +21,7 @@ export default function Home() {
   const [canvas, setCanvas] = useState<VenomCanvas | null>(null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [bookConnected, setBookConnected] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,39 +69,64 @@ export default function Home() {
   }, [canvas === null]);
 
   if (!canvas) {
-    return <div style={{ padding: 40 }}>загрузка...</div>;
+    return (
+      <div style={{ padding: 40, display: "flex", alignItems: "center", gap: 10 }}>
+        <span className="pulse" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent)" }} />
+        загрузка...
+      </div>
+    );
   }
 
   return (
     <main style={{ display: "flex", height: "100vh" }}>
-      <section style={{ flex: "0 0 420px", borderRight: "1px solid #23262f", display: "flex", flexDirection: "column" }}>
-        <header style={{ padding: "16px 20px", borderBottom: "1px solid #23262f" }}>
-          <h1 style={{ fontSize: 18, margin: 0 }}>VENOM Strategy</h1>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "#9a9aa5" }}>
+      <section
+        style={{
+          flex: "0 0 440px",
+          borderRight: "1px solid var(--card-border)",
+          display: "flex",
+          flexDirection: "column",
+          background: "rgba(10, 8, 20, 0.35)",
+        }}
+      >
+        <header style={{ padding: "20px 20px 16px" }}>
+          <h1
+            style={{
+              fontSize: 20,
+              margin: 0,
+              background: "linear-gradient(135deg, var(--accent), var(--accent-2), var(--accent-3))",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              fontWeight: 800,
+            }}
+          >
+            ✨ VENOM Strategy
+          </h1>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "#a8a5b8" }}>
             Личная стратегия по методу С. Колосова
           </p>
         </header>
 
         <StageProgress stages={STAGE_ORDER} current={canvas.stage} labels={STAGE_LABELS} />
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
+        <BookUploader sessionId={sessionId} bookConnected={bookConnected} onBookChange={setBookConnected} />
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 16px" }}>
           {canvas.history.map((m, i) => (
-            <div
-              key={i}
-              style={{
-                marginBottom: 12,
-                textAlign: m.role === "user" ? "right" : "left",
-              }}
-            >
+            <div key={i} className="fade-in" style={{ marginBottom: 12, textAlign: m.role === "user" ? "right" : "left" }}>
               <div
                 style={{
                   display: "inline-block",
-                  maxWidth: "90%",
-                  padding: "8px 12px",
-                  borderRadius: 10,
-                  background: m.role === "user" ? "#2c5cf0" : "#1c1f27",
-                  color: m.role === "user" ? "#fff" : "#e8e8ec",
+                  maxWidth: "88%",
+                  padding: "10px 14px",
+                  borderRadius: 14,
+                  background:
+                    m.role === "user"
+                      ? "linear-gradient(135deg, var(--accent), var(--accent-2))"
+                      : "var(--card-bg)",
+                  border: m.role === "user" ? "none" : "1px solid var(--card-border)",
+                  color: "#f5f4fa",
                   fontSize: 14,
+                  lineHeight: 1.5,
                   whiteSpace: "pre-wrap",
                 }}
               >
@@ -110,7 +137,7 @@ export default function Home() {
           <div ref={chatEndRef} />
         </div>
 
-        <div style={{ padding: 16, borderTop: "1px solid #23262f", display: "flex", gap: 8 }}>
+        <div style={{ padding: 16, borderTop: "1px solid var(--card-border)", display: "flex", gap: 8 }}>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -120,51 +147,57 @@ export default function Home() {
                 send();
               }
             }}
-            placeholder="Напиши ответ..."
+            placeholder="напиши ответ..."
             rows={2}
             style={{
               flex: 1,
               resize: "none",
-              borderRadius: 8,
-              border: "1px solid #2a2d37",
-              background: "#14161c",
-              color: "#e8e8ec",
-              padding: 10,
+              borderRadius: 12,
+              border: "1px solid var(--card-border)",
+              background: "rgba(255,255,255,0.03)",
+              color: "#f1f0f6",
+              padding: 12,
               fontSize: 14,
+              outline: "none",
             }}
           />
           <button
             onClick={() => send()}
             disabled={loading || canvas.stage === "done"}
             style={{
-              padding: "0 16px",
-              borderRadius: 8,
+              padding: "0 20px",
+              borderRadius: 12,
               border: "none",
-              background: loading ? "#444" : "#2c5cf0",
+              background: loading
+                ? "rgba(255,255,255,0.1)"
+                : "linear-gradient(135deg, var(--accent), var(--accent-2))",
               color: "#fff",
               cursor: loading ? "default" : "pointer",
+              fontWeight: 600,
+              fontSize: 14,
             }}
           >
-            {loading ? "..." : "Отправить"}
+            {loading ? "..." : "→"}
           </button>
         </div>
         <button
           onClick={() => send(true)}
           style={{
             margin: "0 16px 16px",
-            padding: "8px",
-            borderRadius: 8,
-            border: "1px solid #2a2d37",
+            padding: "10px",
+            borderRadius: 10,
+            border: "1px solid var(--card-border)",
             background: "transparent",
-            color: "#9a9aa5",
+            color: "#9a97ab",
             cursor: "pointer",
+            fontSize: 13,
           }}
         >
-          Начать заново
+          ↻ начать заново
         </button>
       </section>
 
-      <section style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+      <section style={{ flex: 1, overflowY: "auto", padding: 32 }}>
         <CanvasView canvas={canvas} />
       </section>
     </main>
